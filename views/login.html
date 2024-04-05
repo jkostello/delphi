@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<body>
+    <h3 id="form_response"></h3>
+    <h1>Account Login Page</h1>
+    <form id="login_form" action="/login" method="post">
+
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username"><br>
+
+        <label for="email">Email Address:</label><br>
+        <input type="text" id="email" name="email"><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password"><br>
+
+        <input type="submit" value="Login"><br>
+        
+        <label for="'remember_me">Remember me </label>
+        <input type="checkbox" id="remember_me" name="remember_me"><br>
+
+    </form>
+
+    <script>
+        document.getElementById('login_form').addEventListener('submit', function(event) {
+          event.preventDefault(); // Prevent the form from submitting normally
+    
+          // Get form data
+          const formData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+          };
+    
+          // Send POST request
+          fetch('/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.result === 0) {
+                document.getElementById('form_response').style.color = 'red'
+                document.getElementById('form_response').innerHTML = data.reason
+            }
+            else if (data.result === 1) {
+                document.getElementById('form_response').style.color = 'green'
+                document.getElementById('form_response').innerHTML = "You have successfully been logged in. You will be redirected shortly."
+                bakeCookies(data) // Make the server send these with the 'Set-Cookie' header
+				window.location.href = "http://"+window.location.hostname+":4000/privileged"
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            // Handle error
+          });
+        });
+
+        function bakeCookies(data) {
+          let cookie_expiration = ""
+
+          // TODO make cookies not expire
+          if (document.getElementById('remember_me').checked) {
+            let now = new Date('9999-01-01')
+            cookie_expiration = "; expires="+now.toUTCString()
+          }
+
+          document.cookie = "accessToken="+data.accessToken+"; path=/"+cookie_expiration
+          document.cookie = "refreshToken="+data.refreshToken+"; path=/"+cookie_expiration
+
+          return 0
+        }
+
+      </script>
+</body>

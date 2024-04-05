@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<body>
+    <h1>This is a test page which requires the user to be logged in to access</h1>
+    <script>
+        function getCookie(name) {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+              const [cookieName, cookieValue] = cookie.trim().split('=');
+              if (cookieName === name) {
+                return decodeURIComponent(cookieValue);
+              }
+            }
+            return null;
+        }
+		
+		window.addEventListener('load', function() {
+    	    let accessToken = getCookie('accessToken')
+    	    let refreshToken = getCookie('refreshToken')
+
+    	    let customHeaders = new Headers()
+    	    customHeaders.append('Authorization', 'Bearer '+accessToken)
+			
+    	    fetch("/privileged", {
+    	        method: 'GET',
+    	        headers: customHeaders
+    	    }).then(response => { return response.text() })
+			.then(html => { document.body.innerHTML = html })
+		})
+    </script>
+</body>
