@@ -28,8 +28,10 @@
           const formData = {
             username: document.getElementById('username').value,
             email: document.getElementById('email').value,
-            password: document.getElementById('password').value
+            password: document.getElementById('password').value,
+			remember_me: document.getElementById('remember_me').checked
           };
+		  console.log(formData.remember_me)
     
           // Send POST request
           fetch('/login', {
@@ -53,7 +55,6 @@
             else if (data.result === 1) {
                 document.getElementById('form_response').style.color = 'green'
                 document.getElementById('form_response').innerHTML = "You have successfully been logged in. You will be redirected shortly."
-                bakeCookies(data) // Make the server send these with the 'Set-Cookie' header
 				window.location.href = "http://"+window.location.hostname+":4000/privileged"
             }
           })
@@ -62,21 +63,6 @@
             // Handle error
           });
         });
-
-        function bakeCookies(data) {
-          let cookie_expiration = ""
-
-          // TODO make cookies not expire
-          if (document.getElementById('remember_me').checked) {
-            let now = new Date('9999-01-01')
-            cookie_expiration = "; expires="+now.toUTCString()
-          }
-
-          document.cookie = "accessToken="+data.accessToken+"; path=/"+cookie_expiration
-          document.cookie = "refreshToken="+data.refreshToken+"; path=/"+cookie_expiration
-
-          return 0
-        }
 
       </script>
 </body>

@@ -36,7 +36,12 @@ const accessTokenExpireTime = '15m'
 
 // Add all pages that need authentication to work here
 
-// TODO move GET requests to another server
+// TODO move unauthorized GET requests to another server
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "/views/index.html"))
+})
+
 app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "/views/login.html"))
 })
@@ -46,12 +51,15 @@ app.get("/register", (req, res) => {
 })
 
 // Logout page removes the refresh token from the db and adds the current access token to a denylist (TODO)
-app.delete("/logout", (req, res) => {
+app.get("/logout", (req, res) => {
     updateDBRefreshToken(req.body, null, 'delete')
-    res.sendStatus(204);
+    let pastDate = 'expires=01-01-1970; '
+    res.setHeader('Set-Cookie', ['accessToken=; '+pastDate, 'refreshToken=; '+pastDate])
+    res.status(204).send("You have been successfully logged out.") // Replace with actual logout page
 })
 
 // Remove account from db
+// Make it GET a page which has a form that asks for confirmation before sending a DELETE
 app.delete("/account/delete", (req, res) => {
     const email = req.body.email
     db.query('DELETE FROM users WHERE email = ?', [email], async (err, ress) => {
@@ -63,7 +71,7 @@ app.delete("/account/delete", (req, res) => {
 
 // Login page
 app.post("/login", (req, res) => {
-
+    
     authenticateUser(req.body, function(result) {
 
     // Handle the result of the authentication
@@ -83,12 +91,23 @@ app.post("/login", (req, res) => {
     else {
         const username = req.body.username
         const user = { name: username }
+        const remember_me = req.body.remember_me
 
-        const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET);
-        // TODO add refresh token to db
+        const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET)
         const accessToken = generateAccessToken(user, 1)
         updateDBRefreshToken(req.body, refreshToken, 'update')
-        res.json({ result: 1, accessToken: accessToken, refreshToken: refreshToken });
+        let rtHeader = 'refreshToken=' + refreshToken
+        let atHeader = 'accessToken=' + accessToken
+
+        if (remember_me === true) {
+            const futureDate = '01-01-9999'
+            rtHeader += '; Expires=' + futureDate
+        }
+
+        res.setHeader('Set-Cookie', [atHeader, rtHeader])
+        res.json({ result: 1 })
+
+        res.status(200).send()
     }
 
 
@@ -130,7 +149,7 @@ function generateAccessToken(user, generatedFromLogin) {
         user: user,
         generatedFromLogin: generatedFromLogin
     }
-    return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: accessTokenExpireTime });
+    return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: accessTokenExpireTime })
 }
 
 
@@ -187,10 +206,9 @@ app.get('/privileged', (req, res) => {
             let token = authHeader.substring(7, authHeader.length)
             let isVerified = verifyAccessToken(token)
             if (isVerified) {
-                res.sendFile(path.join(__dirname, "views/test_privileged_page.html"))
+                res.status(200).sendFile(path.join(__dirname, "views/test_privileged_page.html"))
             } else {
-                let loginURL = 'http://'+req.hostname+':4000/login'
-                res.redirect(301, loginURL)
+                res.sendStatus(401)
             }
         }
     } catch (e) {
