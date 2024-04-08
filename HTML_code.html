@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!-- language for the document-->
+<html lang = "en">
+<head>
+    <meta charset = "UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Password Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1> Password Manager</h1>
+        <!--starts the form element that will submit data to the save_password.php file using POST-->
+        <form action="save_password.php" method="post">
+            <!--Creating the input fields with a website, username and password-->
+            <label for="website"> Website:</label>
+            <input type="text" id="website" name="website" required>
+            <label for="username"> Username:</label>
+            <input type="text" id="username" name="username" required>
+            <label for="password"> Password:</label>
+            <input type="password" id="password" name="password" required>
+            <button type="submit"> Save Password</button>
+        </form>
+    </div>
+</body>
+
+</html>
