@@ -1,61 +1,67 @@
+import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import java.util.Random;
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 
-
-// TODO: fix AES not working
-// TODO: create iv creation method
-// TODO: create encryption method
-
-// ## UNSTABLE BUILD, AES NOT WORKING ##
+// TODO: add salt/iv method
 
 public class Encryption {
-    public static final Random RANDOM = new SecureRandom();
-    /**
-     * Return random salt to hash password
-     * @return 16 byte random salt
-     */
-    public static byte[] getNextSalt() {
-        byte[] salt = new byte[16];
-        RANDOM.nextBytes(salt);
-        return salt;
+
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
+    // If needed to display encrypted bytes
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int i = 0; i < bytes.length; i++) {
+            int v = bytes[i] & 0xFF;
+            // Get the high nibble and convert it to a hexadecimal character
+            hexChars[i * 2] = HEX_ARRAY[v >>> 4];
+            // Get the low nibble and convert it to a hexadecimal character
+            hexChars[i * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 
-    public static byte[] hash(char[] password, byte[] salt) {
-        PBEKeySpec spec = new PBEKeySpec(password, salt, 10000, 256);
-        Arrays.fill(password, Character.MIN_VALUE);
+    private static SecretKey getSecretKey(String key) {
+        byte[] keyBytes = Arrays.copyOf(key.getBytes(), 16);
+        SecretKey secretKey = new SecretKeySpec(keyBytes, "AES");
+        return secretKey;
+    }
+
+    public static byte[] encrypt(String message, String key) {
         try {
-            SecretKeyFactory skf = SecretKeyFactory.getInstance("AES");
-            return skf.generateSecret(spec).getEncoded();
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new AssertionError("Error: " + e.getMessage());
-        } finally {
-            spec.clearPassword();
+            SecretKey secretKey = getSecretKey(key);
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] encryptedBytes = cipher.doFinal(message.getBytes());
+            return encryptedBytes;
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            e.printStackTrace();
         }
+        return null;
+    }
+
+    public static String decrypt(byte[] encryptedBytes, String key) {
+        try {
+            SecretKey secretKey = getSecretKey(key);
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+            return new String(decryptedBytes);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public static void main(String[] args) {
-        String password = "test";
-        char[] passwordArray = password.toCharArray();
+        String message = "test";
+        String key = "SecretKey";
+        byte[] encryptedMessage = encrypt(message, key);
+        String decryptedMessage = decrypt(encryptedMessage, key);
 
-        byte[] salt = getNextSalt();
-        byte[] hashed = hash(passwordArray, salt);
-
-        System.out.println("Password: " + password);
-        for (byte b : salt) {
-            System.out.print(b);
-        }
-        System.out.println();
-
-        for (byte b : hashed) {
-            System.out.print(b);
-        }
+        System.out.println("Encrypted Message: " + bytesToHex(encryptedMessage));
+        System.out.println("Decrypted Message: " + decryptedMessage);
     }
 }
