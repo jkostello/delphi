@@ -54,14 +54,4 @@ public class Encryption {
         }
         return null;
     }
-
-    public static void main(String[] args) {
-        String message = "test";
-        String key = "SecretKey";
-        byte[] encryptedMessage = encrypt(message, key);
-        String decryptedMessage = decrypt(encryptedMessage, key);
-
-        System.out.println("Encrypted Message: " + bytesToHex(encryptedMessage));
-        System.out.println("Decrypted Message: " + decryptedMessage);
-    }
 }
