@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<body>
+    <h3>Please wait...</h3>
+
+    <script>
+        function getCookie(name) {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+              const [cookieName, cookieValue] = cookie.trim().split('=');
+              if (cookieName === name) {
+                return decodeURIComponent(cookieValue);
+              }
+            }
+            return null;
+        }
+
+        function updateContent(htmlContent) {
+          const contentDiv = document.getElementById('content');
+          contentDiv.innerHTML = htmlContent;
+        }
+
+        let accessToken = getCookie('accessToken')
+        let refreshToken = getCookie('refreshToken')
+
+        let atHeader = new Headers()
+        atHeader.append('Authorization', 'Bearer '+accessToken)
+        
+        fetch("/privileged", {
+            method: 'GET',
+            headers: atHeader
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    let refreshHeader = new Headers()
+                    refreshHeader.append('Authorization', 'Bearer ' + refreshToken)
+                    fetch("/refresh-token", {
+                        method: 'GET',
+                        headers: refreshHeader
+                    })
+                    .then(response => {
+                        if (response.status === 200) {
+                            let newAtHeader = new Headers()
+                            newAtHeader.append('Authorization', 'Bearer ' + getCookie('accessToken'))
+                            fetch("/privileged", {
+                                method: 'GET',
+                                headers: newAtHeader
+                            })
+                            .then(response => { return response.text() })
+                            .then(html => { document.body.innerHTML = html })
+                        }
+                        else if (response.status === 401 || response.status === 400) {
+                            window.location.href = 'http://'+window.location.hostname+':4000/login'
+                        }
+                    })
+                }
+            }
+            else {
+                return response.text()
+            }
+        }).then(html => { document.body.innerHTML = html })
+    </script>
+
+</body>
