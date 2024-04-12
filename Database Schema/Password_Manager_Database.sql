@@ -8,6 +8,7 @@ Use PasswordDatabase;
 create table if not exists users (
 	user_id int unsigned auto_increment primary key,
 	username varchar(255),
+	user_email varchar(255),
 	user_master_password varchar(255),
 	password_hash varchar(255),
 	token varchar(255)
