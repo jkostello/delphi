@@ -16,6 +16,9 @@
         <label for="password_confirm">Verify Password:</label><br>
         <input type="password" id="password_confirm" name="password_confirm"><br>
 
+        <label for="'remember_me">Remember me </label>
+        <input type="checkbox" id="remember_me" name="remember_me"><br>
+
         <input type="submit" value="Register">
 
     </form>
@@ -29,7 +32,8 @@
             name: document.getElementById('name').value,
             email: document.getElementById('email').value,
             password: document.getElementById('password').value,
-            password_confirm: document.getElementById('password_confirm').value
+            password_confirm: document.getElementById('password_confirm').value,
+            remember_me: document.getElementById('remember_me').checked
           };
     
           // Send POST request
@@ -54,8 +58,7 @@
             else if (data.result === 1) {
                 document.getElementById('form_response').style.color = 'green'
                 document.getElementById('form_response').innerHTML = "You have successfully registered. You will be redirected shortly."
-                document.cookie = "accessToken="+data.accessToken
-                document.cookie = "refreshToken="+data.refreshToken
+				        window.location.href = "http://"+window.location.hostname+":4000/privileged"
             }
           })
           .catch(error => {
