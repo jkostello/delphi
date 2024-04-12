@@ -29,7 +29,7 @@
             username: document.getElementById('username').value,
             email: document.getElementById('email').value,
             password: document.getElementById('password').value,
-			remember_me: document.getElementById('remember_me').checked
+			      remember_me: document.getElementById('remember_me').checked
           };
 		  console.log(formData.remember_me)
     
@@ -55,7 +55,7 @@
             else if (data.result === 1) {
                 document.getElementById('form_response').style.color = 'green'
                 document.getElementById('form_response').innerHTML = "You have successfully been logged in. You will be redirected shortly."
-				window.location.href = "http://"+window.location.hostname+":4000/privileged"
+				        window.location.href = "http://"+window.location.hostname+":4000/privileged"
             }
           })
           .catch(error => {

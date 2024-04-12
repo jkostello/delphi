@@ -62,7 +62,7 @@ app.get("/logout", (req, res) => {
 // Make it GET a page which has a form that asks for confirmation before sending a DELETE
 app.delete("/account/delete", (req, res) => {
     const email = req.body.email
-    db.query('DELETE FROM users WHERE email = ?', [email], async (err, ress) => {
+    db.query('DELETE FROM users WHERE user_email = ?', [email], async (err, ress) => {
         console.log(ress)
         return res.json({ result: ress })
     })
@@ -118,7 +118,7 @@ app.post("/login", (req, res) => {
 app.post("/register", (req, res) => {
     const { name, email, password, password_confirm } = req.body
     
-    db.query('SELECT email FROM users WHERE email = ?', [email], async (error, ress) => {
+    db.query('SELECT user_email FROM users WHERE user_email = ?', [email], async (error, ress) => {
         if (error) {
             console.log(error)
         } 
@@ -130,13 +130,31 @@ app.post("/register", (req, res) => {
         }
 
         const passwordHash = await argon2.hash(password)
-        db.query('INSERT INTO users SET?', { username: name, email: email, password: passwordHash }, (err, ress) => {
-            if (error) {
-                console.log(error)
+        db.query('INSERT INTO users SET ?', { username: name, user_email: email, password_hash: passwordHash }, (err, ress) => {
+            if (err) {
+                console.log(err)
                 return res.json({ result: 0, reason: "Database error" })
             } 
             else {
-                res.json({ result: 1, reason: "Successfully registered!" })
+                const username = req.body.username
+                const user = { name: username }
+                const remember_me = req.body.remember_me
+        
+                const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET)
+                const accessToken = generateAccessToken(user, 1)
+                updateDBRefreshToken(req.body, refreshToken, 'update')
+                let rtHeader = 'refreshToken=' + refreshToken
+                let atHeader = 'accessToken=' + accessToken
+        
+                if (remember_me === true) {
+                    const futureDate = '01-01-9999'
+                    rtHeader += '; Expires=' + futureDate
+                }
+        
+                res.setHeader('Set-Cookie', [atHeader, rtHeader])
+                res.json({ result: 1 })
+        
+                res.status(200).send()
             }
         })
     })
@@ -158,7 +176,7 @@ function authenticateUser({ email, password }, callback) {
 
     // Validate email and password
 
-    db.query('SELECT password FROM users WHERE email = ?', [email], async (error, ress) => {
+    db.query('SELECT password_hash FROM users WHERE user_email = ?', [email], async (error, ress) => {
         if (error) {
             console.log(error)
                 return callback({ 'authenticated': false, 'other_info': error })
@@ -168,7 +186,7 @@ function authenticateUser({ email, password }, callback) {
         }
         
         try {
-            if (await argon2.verify(ress[0].password, password)) {
+            if (await argon2.verify(ress[0].password_hash, password)) {
                 return callback({ 'authenticated': true, 'other_info': null })
               
             } else {
@@ -187,7 +205,7 @@ function authenticateUser({ email, password }, callback) {
 // TODO
 function updateDBRefreshToken(reqInput, refreshToken, alterType) {
     // Refresh tokens should probably be in a separate database
-    db.query('UPDATE users SET refresh_token = ? WHERE email = ?', [refreshToken, reqInput.email], async (error, res) => {
+    db.query('UPDATE users SET token = ? WHERE user_email = ?', [refreshToken, reqInput.email], async (error, res) => {
         if (error) {
             console.log(error)
             // Add error handling
@@ -275,7 +293,7 @@ function verifyAccessToken(accessToken) {
 
 // Create a new access token with refresh token
 function renewAccessToken(refreshToken, callback) {
-    db.query('SELECT username FROM users WHERE refresh_token = ?', [refreshToken], async (error, res) => {
+    db.query('SELECT username FROM users WHERE token = ?', [refreshToken], async (error, res) => {
         if (error) {
             console.error("Error in renewAccessToken query: "+error)
             return callback( {'success': 0} )
