@@ -5,22 +5,80 @@
     <meta charset = "UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> Password Manager</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #f2f2f2;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        @media (max-width: 768px) {
+            .containter {
+                width: 95%;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1> Password Manager</h1>
-        <!--starts the form element that will submit data to the save_password.php file using POST-->
-        <form action="save_password.php" method="post">
-            <!--Creating the input fields with a website, username and password-->
-            <label for="website"> Website:</label>
-            <input type="text" id="website" name="website" required>
-            <label for="username"> Username:</label>
-            <input type="text" id="username" name="username" required>
-            <label for="password"> Password:</label>
-            <input type="password" id="password" name="password" required>
-            <button type="submit"> Save Password</button>
-        </form>
+        <table>
+            <thead>
+                <tr>
+                    <th> Website</th>
+                    <th> Username</th>
+                    <th> Password</th>
+                </tr>
+            </thead>
+            <body>
+                <tr>
+                    <td>example.com</td>
+                    <td> example_user</td>
+                    <td> example_password</td>
+    
+                </tr>
+                <tr>
+                    <td> example2.com</td>
+                    <td> example2_user</td>
+                    <td> example2_password</td>
+                </tr>
+            </body>
+        </table>
+        
     </div>
 </body>
 
