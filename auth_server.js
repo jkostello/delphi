@@ -224,7 +224,7 @@ app.get('/privileged', (req, res) => {
             let token = authHeader.substring(7, authHeader.length)
             let isVerified = verifyAccessToken(token)
             if (isVerified) {
-                res.status(200).sendFile(path.join(__dirname, "views/test_privileged_page.html"))
+                res.status(200).sendFile(path.join(__dirname, "views/privileged.html"))
             } else {
                 res.sendStatus(401)
             }

@@ -29,7 +29,7 @@ public class Encryption {
         return secretKey;
     }
 
-    public static byte[] encrypt(String message, String key) {
+    public static byte[] encrypt(String message, String key) { // CHANGE RETURN TO STRING?
         try {
             SecretKey secretKey = getSecretKey(key);
             Cipher cipher = Cipher.getInstance("AES");
