@@ -235,6 +235,77 @@ app.get('/privileged', (req, res) => {
     }
 })
 
+// Client should send a request with JSON holding the data
+app.post('/add-pass', (req, res) => {
+    let authHeader = req.headers.authorization
+    let data = req.body
+
+    try {
+        if (typeof authHeader === 'undefined') {
+            res.sendStatus(400)
+        }
+        else if (authHeader.startsWith('Bearer ')) {
+            // Verify provided Access Token
+            let token = authHeader.substring(7, authHeader.length)
+            let isVerified = verifyAccessToken(token)
+            if (isVerified) {
+                // Add password
+                getUserID(token, function(user_id) {
+                    if (user_id !== undefined) {
+                        addPassword(user_id, data, function(resultStatus) {
+                            console.log(resultStatus)
+                            if (resultStatus === 1) {
+                                res.sendStatus(200)
+                            } else {
+                                res.sendStatus(500)
+                                }
+                        })
+                    }
+                })
+
+            } else {
+                res.sendStatus(401)
+            }
+        }
+    } catch (e) {
+        res.status(500).send("Unknown error encountered!")
+        console.error("Error in privileged GET: "+e)
+    }
+})
+
+app.get('/get-pass', (req, res) => {
+    let authHeader = req.headers.authorization
+    let data = req.body
+
+    try {
+        if (typeof authHeader === 'undefined') {
+            res.sendStatus(400)
+        }
+        else if (authHeader.startsWith('Bearer ')) {
+            // Verify provided Access Token
+            let token = authHeader.substring(7, authHeader.length)
+            let isVerified = verifyAccessToken(token)
+            if (isVerified) {
+                // Get passwords and send them with JSON
+                getUserID(token, function(user_id) {
+                    if (user_id !== undefined) {
+                        getPasswords(user_id, function(passwords) {
+                            res.setHeader('Content-Type', 'application/json')
+                            res.status(200).send(JSON.stringify(passwords))
+                        })
+                    }
+                })
+
+            } else {
+                res.sendStatus(401)
+            }
+        }
+    } catch (e) {
+        res.status(500).send("Unknown error encountered!")
+        console.error("Error in privileged GET: "+e)
+    }
+})
+
 // Gets new access token using refresh token
 app.get('/refresh-token', (req, res) => {
     let authHeader = req.headers.authorization
@@ -310,6 +381,71 @@ function renewAccessToken(refreshToken, callback) {
             }
         }
     })
+}
+
+function getUserID(accessToken, callback) {
+    let jwt_data = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            console.error("Error verifying access token in getUserID: "+err)
+            return callback(undefined)
+        } else {
+            db.query('SELECT user_id FROM users WHERE username = ?', [decoded.user], async (error, res) => {
+                if (error) {
+                    console.error('Error getting user_id: '+error)
+                    return callback(undefined)
+                } else if (res.length == 0) {
+                    // user is not in the db
+                    return callback(undefined)
+                } else {
+                    return callback(res[0].user_id)
+                }
+            })
+        }
+    })
+}
+
+// Will return a 1 if successful, or 0 for failure
+function addPassword(user_id, info, callback) {
+    // Encrypt password before putting it into the database
+    let ciphertext = encrypt(info.password) 
+    let insert_data = [[user_id, info.username, ciphertext, info.website]]
+    db.query("INSERT INTO passwords (user_id, username, user_password, website) VALUES ?", [insert_data], async (error) => {
+        if (error) {
+            console.error("Error adding password to the database: "+error)
+            return callback(0)
+        } else {
+            // Handle success
+            return callback(1)
+        }
+    })
+}
+
+function getPasswords(user_id, callback) {
+    db.query("SELECT username, user_password, website FROM passwords WHERE user_id = ?", [user_id], async (error, res) => {
+        if (error) {
+            console.log("Error getting passwords from database: "+error)
+            return callback({})
+        } else if (res.length === 0) {
+            return callback({})
+        } else {
+            let decrypted = []
+            res.forEach(function(currentValue) {
+                currentValue.user_password = decrypt(currentValue.user_password)
+                decrypted.push(currentValue)
+            })
+            callback(decrypted)
+        }
+    })
+}
+
+function encrypt(plaintext) {
+    return "Encrypted"
+    // TODO
+}
+
+function decrypt(ciphertext) {
+    return "Decrypted"
+    // TODO
 }
 
 const port = 4000
