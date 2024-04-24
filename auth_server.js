@@ -7,6 +7,8 @@ const mysql = require('mysql')
 const argon2 = require('argon2')
 const path = require('path')
 
+const strDecoder = new TextDecoder('utf-8')
+
 const db = mysql.createConnection({
     'host': process.env.DATABASE_HOST,
     'user': process.env.DATABASE_USER,
@@ -16,7 +18,7 @@ const db = mysql.createConnection({
 
 db.connect((error) => {
     if(error) {
-        console.log(error)
+        console.error(error)
     } else {
         console.log("Connected to database!")
     }
@@ -63,7 +65,6 @@ app.get("/logout", (req, res) => {
 app.delete("/account/delete", (req, res) => {
     const email = req.body.email
     db.query('DELETE FROM users WHERE user_email = ?', [email], async (err, ress) => {
-        console.log(ress)
         return res.json({ result: ress })
     })
 })
@@ -84,7 +85,7 @@ app.post("/login", (req, res) => {
             res.json({ result: 0, reason: 'The provided email or password is incorrect'} )
         } else {
             // This should only be reached if there is an error with the database or the password verification
-            console.log("The following error has been encountered: " + authFailReason) // Replace with actual error handling
+            console.error("The following error has been encountered: " + authFailReason) // Replace with actual error handling
             res.json({ result: 0, reason: 'An error has been encountered!' })
         }
     }
@@ -120,7 +121,7 @@ app.post("/register", (req, res) => {
     
     db.query('SELECT user_email FROM users WHERE user_email = ?', [email], async (error, ress) => {
         if (error) {
-            console.log(error)
+            console.error(error)
         } 
         else if (ress.length > 0) {
             return res.json({ result: 0, reason: "This email is already in use" })
@@ -132,7 +133,7 @@ app.post("/register", (req, res) => {
         const passwordHash = await argon2.hash(password)
         db.query('INSERT INTO users SET ?', { username: name, user_email: email, password_hash: passwordHash }, (err, ress) => {
             if (err) {
-                console.log(err)
+                console.error(err)
                 return res.json({ result: 0, reason: "Database error" })
             } 
             else {
@@ -178,7 +179,7 @@ function authenticateUser({ email, password }, callback) {
 
     db.query('SELECT password_hash FROM users WHERE user_email = ?', [email], async (error, ress) => {
         if (error) {
-            console.log(error)
+            console.error(error)
                 return callback({ 'authenticated': false, 'other_info': error })
         }
         if (ress.length === 0) {
@@ -207,7 +208,7 @@ function updateDBRefreshToken(reqInput, refreshToken, alterType) {
     // Refresh tokens should probably be in a separate database
     db.query('UPDATE users SET token = ? WHERE user_email = ?', [refreshToken, reqInput.email], async (error, res) => {
         if (error) {
-            console.log(error)
+            console.error(error)
             // Add error handling
         }
     })
@@ -231,7 +232,7 @@ app.get('/privileged', (req, res) => {
         }
     } catch (e) {
         res.status(500).send("Unknown error encountered!")
-        console.error("Error in privileged GET: "+e)
+        console.error("Error in privileged GET: " + e)
     }
 })
 
@@ -269,13 +270,12 @@ app.post('/add-pass', (req, res) => {
         }
     } catch (e) {
         res.status(500).send("Unknown error encountered!")
-        console.error("Error in privileged GET: "+e)
+        console.error("Error in privileged GET: " + e)
     }
 })
 
 app.get('/get-pass', (req, res) => {
     let authHeader = req.headers.authorization
-    let data = req.body
 
     try {
         if (typeof authHeader === 'undefined') {
@@ -302,7 +302,7 @@ app.get('/get-pass', (req, res) => {
         }
     } catch (e) {
         res.status(500).send("Unknown error encountered!")
-        console.error("Error in privileged GET: "+e)
+        console.error("Error in privileged GET: " + e)
     }
 })
 
@@ -337,7 +337,7 @@ app.get('/refresh-token', (req, res) => {
             res.status(400).send("Invalid authorization header")
         }
     } catch (e) {
-        console.error("Error renewing access token: "+e)
+        console.error("Error renewing access token: " + e)
     }
 
 })
@@ -366,10 +366,10 @@ function verifyAccessToken(accessToken) {
 function renewAccessToken(refreshToken, callback) {
     db.query('SELECT username FROM users WHERE token = ?', [refreshToken], async (error, res) => {
         if (error) {
-            console.error("Error in renewAccessToken query: "+error)
+            console.error("Error in renewAccessToken query: " + error)
             return callback( {'success': 0} )
         } else if (res.length == 0) {
-            console.log("refreshToken not found in database!")
+            console.error("refreshToken not found in database!")
             return callback( {'success': 0} )
         } else {
             try {
@@ -384,9 +384,9 @@ function renewAccessToken(refreshToken, callback) {
 }
 
 function getUserID(accessToken, callback) {
-    let jwt_data = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
-            console.error("Error verifying access token in getUserID: "+err)
+            console.error("Error verifying access token in getUserID: " + err)
             return callback(undefined)
         } else {
             db.query('SELECT user_id FROM users WHERE username = ?', [decoded.user], async (error, res) => {
@@ -405,13 +405,13 @@ function getUserID(accessToken, callback) {
 }
 
 // Will return a 1 if successful, or 0 for failure
-function addPassword(user_id, info, callback) {
+async function addPassword(user_id, info, callback) {
     // Encrypt password before putting it into the database
-    let ciphertext = encrypt(info.password) 
+    let ciphertext = await encrypt(user_id, info.password)
     let insert_data = [[user_id, info.username, ciphertext, info.website]]
-    db.query("INSERT INTO passwords (user_id, username, user_password, website) VALUES ?", [insert_data], async (error) => {
+    return db.query("INSERT INTO passwords (user_id, username, user_password, website) VALUES ?", [insert_data], async (error) => {
         if (error) {
-            console.error("Error adding password to the database: "+error)
+            console.error("Error adding password to the database: " + error)
             return callback(0)
         } else {
             // Handle success
@@ -420,32 +420,107 @@ function addPassword(user_id, info, callback) {
     })
 }
 
-function getPasswords(user_id, callback) {
+async function getPasswords(user_id, callback) {
     db.query("SELECT username, user_password, website FROM passwords WHERE user_id = ?", [user_id], async (error, res) => {
         if (error) {
-            console.log("Error getting passwords from database: "+error)
+            console.error("Error getting passwords from database: " + error)
             return callback({})
         } else if (res.length === 0) {
             return callback({})
         } else {
-            let decrypted = []
-            res.forEach(function(currentValue) {
-                currentValue.user_password = decrypt(currentValue.user_password)
-                decrypted.push(currentValue)
-            })
-            callback(decrypted)
+            const decrypted = []
+            try {
+                for (const currentValue of res) {
+                    try {
+                        currentValue.user_password = await decrypt(user_id, currentValue.user_password)
+                        decrypted.push(currentValue)
+                    }
+                    catch {
+                        return "Error"
+                    }
+                }
+            }
+            catch (error) {
+                console.error("Error decrypting:", error)
+            }
+            return callback(decrypted)
         }
     })
 }
 
-function encrypt(plaintext) {
-    return "Encrypted"
-    // TODO
+async function encrypt(user_id, plaintext) {
+    return new Promise((resolve, reject) => {
+        getSalt(user_id, async function(key) {
+            try {
+                const payload = plaintext + " " + key;
+                const result = await fetch('http://localhost:8000/encrypt', {
+                    method: 'POST',
+                    body: payload
+                });
+                const streamReader = result.body.getReader();
+                const contents = await readStream(streamReader, "");
+                resolve(contents);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    });
 }
 
-function decrypt(ciphertext) {
-    return "Decrypted"
-    // TODO
+async function decrypt(user_id, ciphertext) {
+    return new Promise((resolve, reject) => {
+        getSalt(user_id, async function(key) {
+            try {
+                if (ciphertext === undefined || key === undefined) {
+                    console.error("Undefined value in decrypt! Values:", ciphertext, key)
+                    reject("Undefined")
+                }
+                else {
+                    const payload = ciphertext + " " + key;
+                    const result = await fetch('http://localhost:8000/decrypt', {
+                        method: 'POST',
+                        body: payload
+                    });
+                    const streamReader = result.body.getReader();
+                    const contents = await readStream(streamReader, "");
+                    resolve(contents);
+                }
+            } catch (error) {
+                reject(error);
+            }
+        });
+    });
+}
+
+async function readStream(reader, contents) {
+    return new Promise((resolve, reject) => {
+        function readChunk() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    resolve(contents);
+                    return;
+                }
+                contents += strDecoder.decode(value);
+                readChunk();
+            }).catch(reject);
+        }
+        readChunk();
+    });
+}
+
+function getSalt(user_id, callback) {
+    db.query("SELECT password_hash FROM users WHERE user_id = ?", [user_id], async (error, res) => {
+        if (error) {
+            console.error("Error getting password hash: " + error)
+            return callback(0)
+        } else if (res.length !== 1) {
+            return callback(0)
+        } else {
+            // Extract salt from hash string
+            const salt = res[0].password_hash.substring(31, 53)
+            return callback(salt)
+        }
+    })
 }
 
 const port = 4000
