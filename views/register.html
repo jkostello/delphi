@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<body>
+    <h3 id="form_response"></h3>
+    <h1>Account Registration Page</h1>
+    <form id="register_form" action="/register" method="post">
+
+        <label for="name">Username:</label><br>
+        <input type="text" id="name" name="name"><br>
+
+        <label for="email">Email Address:</label><br>
+        <input type="text" id="email" name="email"><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password"><br>
+
+        <label for="password_confirm">Verify Password:</label><br>
+        <input type="password" id="password_confirm" name="password_confirm"><br>
+
+        <label for="'remember_me">Remember me </label>
+        <input type="checkbox" id="remember_me" name="remember_me"><br>
+
+        <input type="submit" value="Register">
+
+    </form>
+
+    <script>
+        document.getElementById('register_form').addEventListener('submit', function(event) {
+          event.preventDefault(); // Prevent the form from submitting normally
+    
+          // Get form data
+          const formData = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            password_confirm: document.getElementById('password_confirm').value,
+            remember_me: document.getElementById('remember_me').checked
+          };
+    
+          // Send POST request
+          fetch('/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.result === 0) {
+                document.getElementById('form_response').style.color = 'red'
+                document.getElementById('form_response').innerHTML = data.reason
+            }
+            else if (data.result === 1) {
+                document.getElementById('form_response').style.color = 'green'
+                document.getElementById('form_response').innerHTML = "You have successfully registered. You will be redirected shortly."
+				        window.location.href = "http://"+window.location.hostname+":4000/privileged"
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            // Handle error
+          });
+        });
+      </script>
+</body>
