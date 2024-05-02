@@ -215,31 +215,54 @@ function updateDBRefreshToken(reqInput, refreshToken, alterType) {
 }
 
 app.get('/privileged', (req, res) => {
-    let authHeader = req.headers.authorization
-    try {
-        if (typeof authHeader === 'undefined') {
-            res.sendFile(path.join(__dirname, "views/privileged_temp_page.html"))
-        }
-        else if (authHeader.startsWith('Bearer ')) {
-            // Verify provided Access Token
-            let token = authHeader.substring(7, authHeader.length)
-            let isVerified = verifyAccessToken(token)
-            if (isVerified) {
-                res.status(200).sendFile(path.join(__dirname, "views/privileged.html"))
-            } else {
-                res.sendStatus(401)
+    const cookies = req.headers.cookie
+    getCookie(cookies, 'accessToken', function(authToken) {
+        try {
+            if (typeof authToken === 'undefined') {
+                res.redirect('/login')
             }
+            else {
+                // Verify provided Access Token
+                let isVerified = verifyAccessToken(authToken)
+                if (isVerified) {
+                    res.status(200).sendFile(path.join(__dirname, "views/privileged.html"))
+                } else {
+                    // Try to renew Access Token
+                    getCookie(cookies, 'refreshToken', function(rfToken) {
+                        console.log('rfToken:', rfToken)
+                        if (typeof rfToken === 'undefined' || rfToken === null) {
+                            res.redirect('/login')
+                        }
+                        else {
+                            let isVerified = verifyRefreshToken(rfToken)
+                            if (isVerified) {
+                                renewAccessToken(rfToken, function(newToken) {
+                                    if (typeof newToken !== 'undefined' || newToken.success === 0) {
+                                        res.cookie('accessToken', newToken.token).redirect('/privileged')
+                                    } else {
+                                        console.error("Token failed to generate")
+                                        res.status(500).send("Failed to authenticate!")
+                                    }
+                                })
+                            } else {
+                                res.redirect('login')
+                            }
+                        }
+                    })
+                }
+            }
+        } catch (e) {
+            res.status(500).send("Unknown error encountered!")
+            console.error("Error in privileged GET: " + e)
         }
-    } catch (e) {
-        res.status(500).send("Unknown error encountered!")
-        console.error("Error in privileged GET: " + e)
-    }
+
+    })
 })
 
 // Client should send a request with JSON holding the data
 app.post('/add-pass', (req, res) => {
-    let authHeader = req.headers.authorization
-    let data = req.body
+    const authHeader = req.headers.authorization
+    const data = req.body
 
     try {
         if (typeof authHeader === 'undefined') {
@@ -342,6 +365,21 @@ app.get('/refresh-token', (req, res) => {
 
 })
 
+async function getCookie(cookies, name, callback) {
+    let found = false
+    const splitCookies = cookies.split('; ')
+    splitCookies.forEach(cookie => {
+        const [cookieName, cookieValue] = cookie.split('=')
+        if (cookieName == name) {
+            found = true
+            return callback(cookieValue)
+        }
+    })
+    if (!found) {
+        return callback(0)
+    }
+}
+
 function verifyRefreshToken(refreshToken) {
     return jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err) => {
         if (err) {
@@ -411,6 +449,7 @@ async function addPassword(user_id, info, callback) {
     let insert_data = [[user_id, info.username, ciphertext, info.website]]
     return db.query("INSERT INTO passwords (user_id, username, user_password, website) VALUES ?", [insert_data], async (error) => {
         if (error) {
+            console.log(insert_data)
             console.error("Error adding password to the database: " + error)
             return callback(0)
         } else {

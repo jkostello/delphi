@@ -1,98 +1,167 @@
 <!DOCTYPE html>
-<!-- language for the document-->
 <html lang = "en">
-<head>
-    <meta charset = "UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Password Manager</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            width: 90%;
-            margin: 20px auto;
-            background-color: #f2f2f2;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
-
-        h1 {
-            text-align: center;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        @media (max-width: 768px) {
-            .containter {
-                width: 95%;
+    <head>
+        <meta charset = "UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title> Password Manager</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f2f2f2;
+                margin: 0;
+                padding: 0;
             }
-        }
-    </style>
-</head>
-<body>
-    <div class = "container">
-        <h1> Password Manager</h1>
-        <table id ="passwordTable">
-            <thead>
-                <tr>
-                    <th>Website</th>
-                    <th>Username</th>
-                    <th>Password</th>
-                </tr>
-            </thead>
-            <tbody id = "passwordRows"></tbody>
-        </table>
-        <form id = "passwordFrom">
-            <label for = "website">Website:</label>
-            <input type = "text" id = "website" name = "website"
-            <label for = "username">Username:</label>
-            <input type = "text" id = "username" name = "username">
-            <label for = "password">Password:</label>
-            <input type = "password" id = "password" name = "password">
-            <button type = "button" onclick = "addRow()">Add Row</button>
-        </form>
-    </div>>
+    
+            .container {
+                width: 90%;
+                margin: 20px auto;
+                background-color: #f2f2f2;
+                border-radius: 10px;
+                padding: 20px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                overflow-x: auto;
+            }
+    
+            h1 {
+                text-align: center;
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+    
+            th, td {
+                border: 1px solid #ddd;
+                padding: 10px;
+                text-align: center;
+            }
+    
+            th {
+                background-color: #f2f2f2;
+            }
+    
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+    
+            @media (max-width: 768px) {
+                .container {
+                    width: 95%;
+                }
+            }
+        </style>
+    
+    </head>
 
-    <script>
-        function addRow() {
-            var website = document.getElementById("website").value;
-            var username = document.getElementById("username").value;
-            var password = document.getElementById("password").value;
+    <body>
+        <div class = "container">
+            <h1> Password Manager</h1>
+            <table id ="passwordTable">
+                <thead>
+                    <tr>
+                        <th>Website</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                    </tr>
+                </thead>
+                <tbody id = "passwordRows"></tbody>
+            </table>
+            <form id = "passwordFrom">
+                <label for = "website">Website:</label>
+                <input type = "text" id = "website" name = "website">
+                <label for = "username">Username:</label>
+                <input type = "text" id = "username" name = "username">
+                <label for = "password">Password:</label>
+                <input type = "password" id = "password" name = "password">
+                <button type = "button" onclick="addPassword()">Add Row</button>
+            </form>
+        </div>
 
-            var table = document.getElementById("passwordTable").getElementsByTagName('tbody')[0];
-            var newRow = table.insertRow(table.rows.length);
-            var cell1 = newRow.insertCell(0);
-            var cell2 = newRow.insertCell(1);
-            var cell3 = newRow.insertCell(2);
-            cell1.innerHTML = website;
-            cell2.innerHTML = username;
-            cell3.innerHTML = password;
+        <script>
+    
+            function getCookie(name) {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                const [cookieName, cookieValue] = cookie.trim().split('=');
+                if (cookieName === name) {
+                    return decodeURIComponent(cookieValue);
+                }
+                }
+                return null;
+            }
+    
+            //Got from chatgpt, function to sent HTTP GET request to /get-pass endpoint
+            function getPasswords() {
+                const accessToken = getCookie('accessToken');
+            
+                const customHeaders = new Headers();
+                customHeaders.append('Authorization', 'Bearer '+accessToken);
+            
+                    fetch('/get-pass', {
+                        method: 'GET',
+                        headers: customHeaders
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            buildTable(response.json());
+                        } else {
+                            console.error("Failed to get passwords");
+                        }
+                    });
+            }
+    
+            //Function to build table rows based on JSON response
+            function buildTable(data) {
+                const tableBody = document.getElementById('passwordRows');
+                tableBody.innerHTML = ' ';
+                data.forEach(entry => {
+                    const newRow = tableBody.insertRow();
+                    newRow.innerHTML = `
+                    <td>$(entry.website)</td>
+                    <td>$(entry.username)</td>
+                    <td>$(entry.password)</td>
+                    `;
+                });
+            
+            }
+    
+            //Function to send HTTP POST request to /add-pass endpoint
+            function addPassword() {
+                const website = document.getElementById('website').value;
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
 
-        }
-    </script>
-</body>
+                const reqBody = {
+                    website: website,
+                    username: username,
+                    password: password
+                }
+                
+                const accessToken = getCookie('accessToken');
+                
+                const customHeaders = new Headers();
+                customHeaders.append('Content-Type', 'application/json')
+                customHeaders.append('Authorization', 'Bearer '+accessToken);
+            
+                fetch('/add-pass', {
+                    method: 'POST',
+                    headers: customHeaders,
+                    body: JSON.stringify(reqBody)
+                })
+                .then(response => {
+                    if (response.status === 200) {
+                        getPasswords();
+                    } else {
+                        console.error("Failed to add password");
+                    }
+                });
+            
+            }
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                getPasswords();
+            });
+        </script>
+    </body>
 </html>
