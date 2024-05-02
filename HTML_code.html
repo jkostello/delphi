@@ -64,37 +64,7 @@
                     <th>Password</th>
                 </tr>
             </thead>
-            <tbody id = "passwordRows">
-                <!-- Got from chatGPT-->
-                <?php 
-                // Connect to database
-                $mysqli = new mysqli("localhost", "username", "password", "database_name");
-
-                //Check Connection
-                if ($mysqli->connect_error) {
-                    die("Connection failed: " . $mysqli->connect_error);
-                }
-
-                //Query database
-                $sql = "SELECT website, username, password FROM passwords";
-                $result = $mysqli->query($sql);
-
-                // Populate table rows with data from databaseif ($result->num_rows > 0) {
-                    while($row = $result->fetch_assoc()) {
-                        echo "<tr>";
-                        echo "<td>" . $row["website"] . "</td>";
-                        echo "<td>" . $row["username"] . "</td>";
-                        echo "<td>" . $row["password"] . "</td>";
-                        echo "</tr>";
-                    }
-                } else {
-                    echo "<tr><td colspan='3'>No passwords found"</td></tr>;
-                }
-
-                //Close database Connection
-                $mysqli->close();
-                ?>
-            </tbody>
+            <tbody id = "passwordRows"></tbody>
         </table>
         <form id = "passwordFrom">
             <label for = "website">Website:</label>
@@ -108,21 +78,59 @@
     </div>>
 
     <script>
-        function addRow() {
-            var website = document.getElementById("website").value;
-            var username = document.getElementById("username").value;
-            var password = document.getElementById("password").value;
-
-            var table = document.getElementById("passwordTable").getElementsByTagName('tbody')[0];
-            var newRow = table.insertRow(table.rows.length);
-            var cell1 = newRow.insertCell(0);
-            var cell2 = newRow.insertCell(1);
-            var cell3 = newRow.insertCell(2);
-            cell1.innerHTML = website;
-            cell2.innerHTML = username;
-            cell3.innerHTML = password;
-
+        //Got from chatgpt, function to sent HTTP GET request to /get-pass endpoint
+        async function getPasswords() {
+            try {
+                const response = await fetch('/get-pass');
+                if(!responce.ok) {
+                    throw new Error('Failed to fetch passwords');
+                }
+                const data = await response.json();
+                buildTable(data);
+            } catch (error) {
+                console.error(error);
+            }
         }
+
+        //Function to build table rows based on JSON response
+        function buildTable(data) {
+            const tableBody = document.getElementById('passwordRows');
+            tableBody.innerHTML = ' ';
+            data.forEach(entry => {
+                const newRow = tableBody.insertRow();
+                newRow.innerHTML = 
+                '<td>$(entry.website)</td>'
+                '<td>$(entry.username)</td>'
+                '<td>$(entry.password)</td>'
+                ;
+            });
+
+            }
+
+             //Function to send HTTP POST request to /add-pass endpoint
+             async function addPassword() {
+                const website = document.getElementById('website').value;
+                const username = document.getELementById('username').value;
+                const password = document.getElementById('password').value;
+
+                try {
+                    const response = await fetch('/add-pass', {
+                        method: 'POST',
+                        header: {
+                            'Constant-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ website, username, password})
+                    });
+                    if (!response.ok) {
+                        throw new Error('Failed to add password');
+                    }
+                    getPassword();
+                } catch (error) {
+                    console.error(error);
+                }
+             }
+
+             getPasswords();
     </script>
 </body>
 </html>
