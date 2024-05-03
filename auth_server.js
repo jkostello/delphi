@@ -364,6 +364,9 @@ app.get('/refresh-token', (req, res) => {
 })
 
 async function getCookie(cookies, name, callback) {
+    if (cookies === undefined) {
+        return callback(0)
+    }
     let found = false
     const splitCookies = cookies.split('; ')
     splitCookies.forEach(cookie => {
