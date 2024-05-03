@@ -104,10 +104,13 @@
                     })
                     .then(response => {
                         if (response.ok) {
-                            buildTable(response.json());
+                            return response.json();
                         } else {
                             console.error("Failed to get passwords");
                         }
+                    })
+                    .then(jsonData => {
+                        buildTable(jsonData)
                     });
             }
     
@@ -116,12 +119,12 @@
                 const tableBody = document.getElementById('passwordRows');
                 tableBody.innerHTML = ' ';
                 data.forEach(entry => {
+                    console.log(entry)
                     const newRow = tableBody.insertRow();
-                    newRow.innerHTML = `
-                    <td>$(entry.website)</td>
-                    <td>$(entry.username)</td>
-                    <td>$(entry.password)</td>
-                    `;
+                    newRow.innerHTML = 
+                    "<td>" + entry.website + "</td>" +
+                    "<td>" + entry.username + "</td>" +
+                    "<td>" + entry.user_password + "</td>";
                 });
             
             }
