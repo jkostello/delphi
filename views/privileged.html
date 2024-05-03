@@ -119,7 +119,6 @@
                 const tableBody = document.getElementById('passwordRows');
                 tableBody.innerHTML = ' ';
                 data.forEach(entry => {
-                    console.log(entry)
                     const newRow = tableBody.insertRow();
                     newRow.innerHTML = 
                     "<td>" + entry.website + "</td>" +
@@ -155,6 +154,18 @@
                 .then(response => {
                     if (response.status === 200) {
                         getPasswords();
+                    } else if (response.status === 401) {
+                        fetch('/refresh-token', {
+                            method: 'GET',
+                            headers: {'Authorization': 'Bearer ' + getCookie('refreshToken')}
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                addPassword()
+                            } else {
+                                console.error("Failed to refresh access token")
+                            }
+                        })
                     } else {
                         console.error("Failed to add password");
                     }
