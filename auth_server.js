@@ -229,7 +229,6 @@ app.get('/privileged', (req, res) => {
                 } else {
                     // Try to renew Access Token
                     getCookie(cookies, 'refreshToken', function(rfToken) {
-                        console.log('rfToken:', rfToken)
                         if (typeof rfToken === 'undefined' || rfToken === null) {
                             res.redirect('/login')
                         }
@@ -277,7 +276,6 @@ app.post('/add-pass', (req, res) => {
                 getUserID(token, function(user_id) {
                     if (user_id !== undefined) {
                         addPassword(user_id, data, function(resultStatus) {
-                            console.log(resultStatus)
                             if (resultStatus === 1) {
                                 res.sendStatus(200)
                             } else {
@@ -449,7 +447,6 @@ async function addPassword(user_id, info, callback) {
     let insert_data = [[user_id, info.username, ciphertext, info.website]]
     return db.query("INSERT INTO passwords (user_id, username, user_password, website) VALUES ?", [insert_data], async (error) => {
         if (error) {
-            console.log(insert_data)
             console.error("Error adding password to the database: " + error)
             return callback(0)
         } else {
