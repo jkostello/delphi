@@ -91,7 +91,7 @@ app.post("/login", (req, res) => {
     }
     else {
         const username = req.body.username
-        const user = { name: username }
+        const user = username
         const remember_me = req.body.remember_me
 
         const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET)
@@ -299,7 +299,7 @@ app.get('/get-pass', (req, res) => {
     let authHeader = req.headers.authorization
 
     try {
-        if (typeof authHeader === 'undefined') {
+        if (authHeader === undefined) {
             res.sendStatus(400)
         }
         else if (authHeader.startsWith('Bearer ')) {
@@ -317,11 +317,16 @@ app.get('/get-pass', (req, res) => {
                     }
                 })
 
-            } else {
+            }
+            else {
                 res.sendStatus(401)
             }
         }
-    } catch (e) {
+        else {
+            res.sendStatus(400)
+        }
+    }
+    catch (e) {
         res.status(500).send("Unknown error encountered!")
         console.error("Error in privileged GET: " + e)
     }
