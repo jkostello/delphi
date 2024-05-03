@@ -263,8 +263,10 @@ app.post('/add-pass', (req, res) => {
     const authHeader = req.headers.authorization
     const data = req.body
 
+    const emptyFields = (data.website === '' || data.username === '' || data.password === '')
+
     try {
-        if (typeof authHeader === 'undefined') {
+        if (emptyFields || typeof authHeader === 'undefined') {
             res.sendStatus(400)
         }
         else if (authHeader.startsWith('Bearer ')) {
