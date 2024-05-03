@@ -131,16 +131,16 @@ app.post("/register", (req, res) => {
         }
 
         const passwordHash = await argon2.hash(password)
-        db.query('INSERT INTO users SET ?', { username: name, user_email: email, password_hash: passwordHash }, (err, ress) => {
+        const queryPayload = [[name, email, passwordHash]]
+        db.query('INSERT INTO users (username, user_email, password_hash) VALUES ?', [queryPayload], (err) => {
             if (err) {
                 console.error(err)
                 return res.json({ result: 0, reason: "Database error" })
             } 
             else {
-                const username = req.body.username
-                const user = { name: username }
+                const username = req.body.name
+                const user = username
                 const remember_me = req.body.remember_me
-        
                 const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET)
                 const accessToken = generateAccessToken(user, 1)
                 updateDBRefreshToken(req.body, refreshToken, 'update')
