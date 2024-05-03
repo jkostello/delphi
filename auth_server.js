@@ -91,7 +91,7 @@ app.post("/login", (req, res) => {
     }
     else {
         const username = req.body.username
-        const user = { name: username }
+        const user = username
         const remember_me = req.body.remember_me
 
         const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET)
@@ -131,16 +131,16 @@ app.post("/register", (req, res) => {
         }
 
         const passwordHash = await argon2.hash(password)
-        db.query('INSERT INTO users SET ?', { username: name, user_email: email, password_hash: passwordHash }, (err, ress) => {
+        const queryPayload = [[name, email, passwordHash]]
+        db.query('INSERT INTO users (username, user_email, password_hash) VALUES ?', [queryPayload], (err) => {
             if (err) {
                 console.error(err)
                 return res.json({ result: 0, reason: "Database error" })
             } 
             else {
-                const username = req.body.username
-                const user = { name: username }
+                const username = req.body.name
+                const user = username
                 const remember_me = req.body.remember_me
-        
                 const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET)
                 const accessToken = generateAccessToken(user, 1)
                 updateDBRefreshToken(req.body, refreshToken, 'update')
@@ -215,34 +215,58 @@ function updateDBRefreshToken(reqInput, refreshToken, alterType) {
 }
 
 app.get('/privileged', (req, res) => {
-    let authHeader = req.headers.authorization
-    try {
-        if (typeof authHeader === 'undefined') {
-            res.sendFile(path.join(__dirname, "views/privileged_temp_page.html"))
-        }
-        else if (authHeader.startsWith('Bearer ')) {
-            // Verify provided Access Token
-            let token = authHeader.substring(7, authHeader.length)
-            let isVerified = verifyAccessToken(token)
-            if (isVerified) {
-                res.status(200).sendFile(path.join(__dirname, "views/privileged.html"))
-            } else {
-                res.sendStatus(401)
+    const cookies = req.headers.cookie
+    getCookie(cookies, 'accessToken', function(authToken) {
+        try {
+            if (typeof authToken === 'undefined') {
+                res.redirect('/login')
             }
+            else {
+                // Verify provided Access Token
+                let isVerified = verifyAccessToken(authToken)
+                if (isVerified) {
+                    res.status(200).sendFile(path.join(__dirname, "views/privileged.html"))
+                } else {
+                    // Try to renew Access Token
+                    getCookie(cookies, 'refreshToken', function(rfToken) {
+                        if (typeof rfToken === 'undefined' || rfToken === null) {
+                            res.redirect('/login')
+                        }
+                        else {
+                            let isVerified = verifyRefreshToken(rfToken)
+                            if (isVerified) {
+                                renewAccessToken(rfToken, function(newToken) {
+                                    if (typeof newToken !== 'undefined' || newToken.success === 0) {
+                                        res.cookie('accessToken', newToken.token).redirect('/privileged')
+                                    } else {
+                                        console.error("Token failed to generate")
+                                        res.status(500).send("Failed to authenticate!")
+                                    }
+                                })
+                            } else {
+                                res.redirect('login')
+                            }
+                        }
+                    })
+                }
+            }
+        } catch (e) {
+            res.status(500).send("Unknown error encountered!")
+            console.error("Error in privileged GET: " + e)
         }
-    } catch (e) {
-        res.status(500).send("Unknown error encountered!")
-        console.error("Error in privileged GET: " + e)
-    }
+
+    })
 })
 
 // Client should send a request with JSON holding the data
 app.post('/add-pass', (req, res) => {
-    let authHeader = req.headers.authorization
-    let data = req.body
+    const authHeader = req.headers.authorization
+    const data = req.body
+
+    const emptyFields = (data.website === '' || data.username === '' || data.password === '')
 
     try {
-        if (typeof authHeader === 'undefined') {
+        if (emptyFields || typeof authHeader === 'undefined') {
             res.sendStatus(400)
         }
         else if (authHeader.startsWith('Bearer ')) {
@@ -254,7 +278,6 @@ app.post('/add-pass', (req, res) => {
                 getUserID(token, function(user_id) {
                     if (user_id !== undefined) {
                         addPassword(user_id, data, function(resultStatus) {
-                            console.log(resultStatus)
                             if (resultStatus === 1) {
                                 res.sendStatus(200)
                             } else {
@@ -278,7 +301,7 @@ app.get('/get-pass', (req, res) => {
     let authHeader = req.headers.authorization
 
     try {
-        if (typeof authHeader === 'undefined') {
+        if (authHeader === undefined) {
             res.sendStatus(400)
         }
         else if (authHeader.startsWith('Bearer ')) {
@@ -296,11 +319,16 @@ app.get('/get-pass', (req, res) => {
                     }
                 })
 
-            } else {
+            }
+            else {
                 res.sendStatus(401)
             }
         }
-    } catch (e) {
+        else {
+            res.sendStatus(400)
+        }
+    }
+    catch (e) {
         res.status(500).send("Unknown error encountered!")
         console.error("Error in privileged GET: " + e)
     }
@@ -341,6 +369,24 @@ app.get('/refresh-token', (req, res) => {
     }
 
 })
+
+async function getCookie(cookies, name, callback) {
+    if (cookies === undefined) {
+        return callback(0)
+    }
+    let found = false
+    const splitCookies = cookies.split('; ')
+    splitCookies.forEach(cookie => {
+        const [cookieName, cookieValue] = cookie.split('=')
+        if (cookieName == name) {
+            found = true
+            return callback(cookieValue)
+        }
+    })
+    if (!found) {
+        return callback(0)
+    }
+}
 
 function verifyRefreshToken(refreshToken) {
     return jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err) => {
