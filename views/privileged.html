@@ -120,15 +120,17 @@
                 const tableBody = document.getElementById('passwordRows');
                 tableBody.innerHTML = ' ';
                 let n = 0;
-                data.forEach(entry => {
-                    passwordContainer.push(entry.user_password)
-                    const newRow = tableBody.insertRow();
-                    newRow.innerHTML = 
-                    "<td>" + entry.website + "</td>" +
-                    "<td>" + entry.username + "</td>" +
-                    "<td id=" + n + " onclick='showPassword(this)'>********</td>";
-                    n += 1;
-                });
+                if (Object.keys(data).length > 1) {
+                    data.forEach(entry => {
+                        passwordContainer.push(entry.user_password)
+                        const newRow = tableBody.insertRow();
+                        newRow.innerHTML = 
+                        "<td>" + entry.website + "</td>" +
+                        "<td>" + entry.username + "</td>" +
+                        "<td id=" + n + " onclick='showPassword(this)'>********</td>";
+                        n += 1;
+                    });
+                };
             }
     
             //Function to send HTTP POST request to /add-pass endpoint
