@@ -74,7 +74,7 @@
                 <input type = "text" id = "username" name = "username">
                 <label for = "password">Password:</label>
                 <input type = "password" id = "password" name = "password">
-                <button type = "button" onclick="addPassword()">Add Row</button>
+                <button type = "button" onclick="addPassword(passwordContainer)">Add Row</button>
             </form>
         </div>
 
@@ -92,7 +92,7 @@
             }
     
             //Got from chatgpt, function to sent HTTP GET request to /get-pass endpoint
-            function getPasswords() {
+            function getPasswords(passwordContainer) {
                 const accessToken = getCookie('accessToken');
             
                 const customHeaders = new Headers();
@@ -110,20 +110,23 @@
                         }
                     })
                     .then(jsonData => {
-                        buildTable(jsonData)
+                        buildTable(jsonData, passwordContainer);
                     });
             }
     
             //Function to build table rows based on JSON response
-            function buildTable(data) {
+            function buildTable(data, passwordContainer) {
                 const tableBody = document.getElementById('passwordRows');
                 tableBody.innerHTML = ' ';
+                let n = 0;
                 data.forEach(entry => {
+                    passwordContainer.push(entry.user_password)
                     const newRow = tableBody.insertRow();
                     newRow.innerHTML = 
                     "<td>" + entry.website + "</td>" +
                     "<td>" + entry.username + "</td>" +
-                    "<td>" + entry.user_password + "</td>";
+                    "<td id=" + n + " onclick='showPassword(this)'>********</td>";
+                    n += 1;
                 });
             
             }
@@ -138,12 +141,12 @@
                     website: website,
                     username: username,
                     password: password
-                }
+                };
                 
                 const accessToken = getCookie('accessToken');
                 
                 const customHeaders = new Headers();
-                customHeaders.append('Content-Type', 'application/json')
+                customHeaders.append('Content-Type', 'application/json');
                 customHeaders.append('Authorization', 'Bearer '+accessToken);
             
                 fetch('/add-pass', {
@@ -161,9 +164,9 @@
                         })
                         .then(response => {
                             if (response.ok) {
-                                addPassword()
+                                addPassword();
                             } else {
-                                console.error("Failed to refresh access token")
+                                console.error("Failed to refresh access token");
                             }
                         })
                     } else {
@@ -173,9 +176,21 @@
             
             }
             
+            function showPassword(element) {
+                const id = Number(element.id);
+                if (!element.innerHTML || element.innerHTML === '********') {
+                    element.innerHTML = passwordContainer[id];
+                } else {
+                    element.innerHTML = '********';
+                }
+            }
+
+            let passwordContainer = [];
+            
             document.addEventListener('DOMContentLoaded', () => {
-                getPasswords();
+                getPasswords(passwordContainer);
             });
+
         </script>
     </body>
 </html>
