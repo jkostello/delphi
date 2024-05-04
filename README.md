@@ -11,7 +11,7 @@ It should look something like this (with token secrets being a random string):<b
 >ACCESS_TOKEN_SECRET=1234<br>
 >REFRESH_TOKEN_SECRET=1234
 2. Install Node.JS packages by running `npm install`
-3. Start server with `npm run startDev_auth`
+3. Start server with `node node_server.js`
 
 *If there are database errors, make sure that the database credentials in .env are correct and that the database is running.*
 

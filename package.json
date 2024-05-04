@@ -1,11 +1,10 @@
 {
-  "name": "login",
+  "name": "node_password_manager",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "node_server.js",
   "scripts": {
-    "startDev": "nodemon index.js",
-    "startDev_auth": "nodemon auth_server.js",
+    "startDev_auth": "nodemon node_server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
