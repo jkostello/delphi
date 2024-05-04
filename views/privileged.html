@@ -67,7 +67,7 @@
                 </thead>
                 <tbody id = "passwordRows"></tbody>
             </table>
-            <form id = "passwordFrom">
+            <form id = "passwordForm">
                 <label for = "website">Website:</label>
                 <input type = "text" id = "website" name = "website">
                 <label for = "username">Username:</label>
@@ -79,6 +79,7 @@
         </div>
 
         <script>
+            const passwordContainer = [];
     
             function getCookie(name) {
                 const cookies = document.cookie.split(';');
@@ -128,11 +129,12 @@
                     "<td id=" + n + " onclick='showPassword(this)'>********</td>";
                     n += 1;
                 });
-            
             }
     
             //Function to send HTTP POST request to /add-pass endpoint
             function addPassword() {
+                passwordContainer.length = 0;
+
                 const website = document.getElementById('website').value;
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
@@ -156,7 +158,7 @@
                 })
                 .then(response => {
                     if (response.status === 200) {
-                        getPasswords();
+                        getPasswords(passwordContainer);
                     } else if (response.status === 401) {
                         fetch('/refresh-token', {
                             method: 'GET',
@@ -178,14 +180,15 @@
             
             function showPassword(element) {
                 const id = Number(element.id);
-                if (!element.innerHTML || element.innerHTML === '********') {
+                if (id > passwordContainer.length) {
+                    return;
+                } else if (!element.innerHTML || element.innerHTML === '********') {
                     element.innerHTML = passwordContainer[id];
                 } else {
                     element.innerHTML = '********';
                 }
             }
 
-            let passwordContainer = [];
             
             document.addEventListener('DOMContentLoaded', () => {
                 getPasswords(passwordContainer);
