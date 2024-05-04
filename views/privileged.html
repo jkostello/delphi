@@ -120,7 +120,7 @@
                 const tableBody = document.getElementById('passwordRows');
                 tableBody.innerHTML = ' ';
                 let n = 0;
-                if (Object.keys(data).length > 1) {
+                if (Object.keys(data).length > 0) {
                     data.forEach(entry => {
                         passwordContainer.push(entry.user_password)
                         const newRow = tableBody.insertRow();
