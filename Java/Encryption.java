@@ -4,8 +4,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-// TODO: add salt/iv method
-
 public class Encryption {
 
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
@@ -29,7 +27,7 @@ public class Encryption {
         return secretKey;
     }
 
-    public static byte[] encrypt(String message, String key) { // CHANGE RETURN TO STRING?
+    public static byte[] encrypt(String message, String key) {
         try {
             SecretKey secretKey = getSecretKey(key);
             Cipher cipher = Cipher.getInstance("AES");
